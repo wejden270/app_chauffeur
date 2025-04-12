@@ -1,0 +1,57 @@
+name: chauffeurs_app
+description: "Application mobile pour les chauffeurs SOS"
+
+# Empêche la publication sur pub.dev
+publish_to: 'none'
+
+# Version de l'application
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  image_picker: ^1.1.2
+
+  # 📡 HTTP pour les requêtes API
+  http: ^1.2.1
+
+  # 💾 Stockage local (cache utilisateur)
+  shared_preferences: ^2.2.2
+
+  # 🗺️ Intégration Google Maps
+  google_maps_flutter: ^2.6.0
+
+  # 📍 Accès et suivi de la localisation
+  location: ^5.0.3
+  geolocator: ^10.1.0  # 🔥 Gestion avancée du GPS
+  geocoding: ^3.0.0  # 🔄 Conversion coordonnées ↔ adresse
+
+  # 📲 Service en arrière-plan pour localisation continue
+  flutter_background_service: ^5.0.5
+
+  # 🔔 Icônes Cupertino (iOS)
+  cupertino_icons: ^1.0.8
+
+  # 🌍 Variables d'environnement (optionnel si besoin)
+  flutter_dotenv: ^5.1.0
+
+  # 📍 Gérer les permissions d'accès
+  permission_handler: ^11.3.0
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+
+  # Si tu utilises des assets (images, fonts, etc.), ajoute-les ici
+  assets:
+    - assets/images/app_icon.png
+    - assets/images/background.jpg
