@@ -11,7 +11,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  Chauffeur? _chauffeurData; // Utilisation de Chauffeur et non de Map
+  Chauffeur? _chauffeurData;
   bool _isLoading = true;
   String _errorMessage = '';
 
@@ -21,13 +21,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
   }
 
-  // Charger les informations du chauffeur depuis l'API
   Future<void> _loadProfile() async {
     try {
-      // Utilise l'ID du chauffeur stocké dans l'application
-      final driverId = 1; // Remplace par l'ID réel du chauffeur, qui peut être récupéré via Auth ou autre logique
-
-      final data = await ChauffeurService().fetchChauffeurInfo(driverId); // Envoie l'ID à l'API
+      final driverId = 2; // Remplacer par SharedPreferences si besoin
+      final data = await ChauffeurService().fetchChauffeurInfo(driverId);
       setState(() {
         _chauffeurData = data;
         _isLoading = false;
@@ -42,10 +39,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Déconnexion du chauffeur
   Future<void> _logout() async {
     try {
-      await AuthService().logout();  // Utilisation de AuthService pour la déconnexion
+      await AuthService().logout();
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -69,37 +65,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
+            // Avatar par défaut sans chargement d’image
+            const CircleAvatar(
               radius: 50,
               backgroundColor: Colors.blueGrey,
-              backgroundImage: _chauffeurData?.photo != null
-                  ? NetworkImage(_chauffeurData!.photo!)
-                  : null,
-              child: _chauffeurData?.photo == null
-                  ? Icon(Icons.person, size: 50, color: Colors.white)
-                  : null,
+              child: Icon(Icons.person, size: 50, color: Colors.white),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
+
             Text(
               _chauffeurData?.nom ?? "Nom inconnu",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text("📧 ${_chauffeurData?.email ?? 'Email non disponible'}"),
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
             Text("📞 ${_chauffeurData?.phone ?? 'Numéro non disponible'}"),
-            SizedBox(height: 5),
-            Text("📌 Statut: ${_chauffeurData?.statut ?? 'Indisponible'}"),
-            SizedBox(height: 20),
+            const SizedBox(height: 5),
+            Text("📌 Status: ${_chauffeurData?.status ?? 'Indisponible'}"),
+            const SizedBox(height: 20),
 
-            // Bouton Modifier le profil
             ElevatedButton.icon(
               onPressed: () async {
                 final updatedData = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => EditProfileScreen(
-                        chauffeurData: _chauffeurData!),
+                      chauffeurData: _chauffeurData!,
+                    ),
                   ),
                 );
                 if (updatedData != null) {
@@ -111,17 +104,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icon(Icons.edit),
               label: Text("Modifier le profil"),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent),
+                backgroundColor: Colors.blueAccent,
+              ),
             ),
-            SizedBox(height: 20),
-
-            // Bouton Déconnexion
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: _logout,
               icon: Icon(Icons.exit_to_app, color: Colors.white),
               label: Text("Déconnexion"),
-              style:
-              ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
             ),
           ],
         ),

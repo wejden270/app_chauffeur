@@ -3,27 +3,26 @@ class Chauffeur {
   final String nom;
   final String phone;
   final String email;
-  final String statut;
-  final String? photo;  // Ajout de la propriété photo
+  final String status;
+  final String? photo;
 
   Chauffeur({
     required this.id,
     required this.nom,
     required this.phone,
     required this.email,
-    required this.statut,
-    this.photo,  // Le champ photo est optionnel
+    required this.status,
+    this.photo,
   });
 
-  // Convertir un JSON en objet Chauffeur
   factory Chauffeur.fromJson(Map<String, dynamic> json) {
     return Chauffeur(
-      id: json['id'],
-      nom: json['nom'],
-      phone: json['phone'],
-      email: json['email'],
-      statut: json['statut'],
-      photo: json['photo'],  // Assurez-vous que la clé 'photo' existe dans le JSON
+      id: json['id'] ?? 0,
+      nom: json['nom'] ?? '',
+      phone: json['phone'] ?? '',
+      email: json['email'] ?? '',
+      status: json['status'] ?? '',
+      photo: json['photo'], // Ce champ peut rester null
     );
   }
 }

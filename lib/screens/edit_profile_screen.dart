@@ -17,7 +17,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _statutController;
+  late TextEditingController _statusController;
   File? _image;
 
   @override
@@ -26,7 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: widget.chauffeurData.nom); // Corrected 'name' to 'nom'
     _emailController = TextEditingController(text: widget.chauffeurData.email);
     _phoneController = TextEditingController(text: widget.chauffeurData.phone);
-    _statutController = TextEditingController(text: widget.chauffeurData.statut ?? '');
+    _statusController = TextEditingController(text: widget.chauffeurData.status ?? '');
   }
 
   // Fonction pour sélectionner une image de la galerie
@@ -47,7 +47,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "name": _nameController.text,
         "email": _emailController.text,
         "phone": _phoneController.text,
-        "statut": _statutController.text,
+        "status": _statusController.text,
       };
 
       ChauffeurService chauffeurService = ChauffeurService(); // Instanciation de ChauffeurService
@@ -102,8 +102,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 validator: (value) => value!.isEmpty ? "Entrez un numéro" : null,
               ),
               TextFormField(
-                controller: _statutController,
-                decoration: InputDecoration(labelText: "Statut"),
+                controller: _statusController,
+                decoration: InputDecoration(labelText: "Status"),
               ),
               SizedBox(height: 20),
 
