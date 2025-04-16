@@ -189,11 +189,11 @@ class ApiService {
   }
 
   // 🔹 METTRE À JOUR LA LOCALISATION DU CHAUFFEUR
-  static Future<bool> updateChauffeurLocationSimple(String driverId, double latitude, double longitude) async {
+  static Future<bool> updateChauffeurLocationSimple(double driverId, double latitude, double longitude) async {
     try {
       final token = await getToken();
       final response = await http.post(
-        Uri.parse('$baseUrl/driver/update-location'),
+        Uri.parse('$baseUrl/chauffeurs/update-location'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

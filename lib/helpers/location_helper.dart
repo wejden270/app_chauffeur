@@ -16,7 +16,8 @@ class LocationHelper {
   // Envoie la position actuelle du chauffeur vers le serveur
   static Future<void> sendLocationToServer(int chauffeurId, Position position) async {
     // Convertir chauffeurId en String
-    await ApiService.updateChauffeurLocationSimple(chauffeurId.toString(), position.latitude, position.longitude);
+    //await ApiService.updateChauffeurLocationSimple(chauffeurId.toString(), position.latitude, position.longitude);
+    await ApiService.updateChauffeurLocationSimple(chauffeurId.toDouble(), position.latitude, position.longitude);
   }
 
   // Récupère la position actuelle de l'utilisateur

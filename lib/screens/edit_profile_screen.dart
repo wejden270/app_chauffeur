@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chauffeurs_app/helpers/chauffeur_service.dart';
-import 'package:chauffeurs_app/models/chauffeur_model.dart'; // Import ajouté pour le modèle Chauffeur
+import 'package:chauffeurs_app/models/chauffeur_model.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final Chauffeur chauffeurData; // Utilisation du modèle Chauffeur au lieu de Map
+  final Chauffeur chauffeurData;
   EditProfileScreen({required this.chauffeurData});
 
   @override
@@ -23,13 +23,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.chauffeurData.nom); // Corrected 'name' to 'nom'
+    _nameController = TextEditingController(text: widget.chauffeurData.nom);
     _emailController = TextEditingController(text: widget.chauffeurData.email);
     _phoneController = TextEditingController(text: widget.chauffeurData.phone);
     _statusController = TextEditingController(text: widget.chauffeurData.status ?? '');
   }
 
-  // Fonction pour sélectionner une image de la galerie
+  // Sélectionner une image
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -39,10 +39,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // Fonction pour sauvegarder les informations du profil
+  // Sauvegarder les modifications
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      // Création des données mises à jour
       Map<String, String> updatedData = {
         "name": _nameController.text,
         "email": _emailController.text,
@@ -50,14 +49,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "status": _statusController.text,
       };
 
-      ChauffeurService chauffeurService = ChauffeurService(); // Instanciation de ChauffeurService
+      ChauffeurService chauffeurService = ChauffeurService();
 
-      bool success = await chauffeurService.updateChauffeurProfile(updatedData, _image); // Correct method call
-      if (success) {
-        Navigator.pop(context, updatedData); // Retourner les données mises à jour
-      } else {
+      try {
+        // Récupérer les données mises à jour
+        Chauffeur updatedChauffeur = await chauffeurService.updateChauffeurProfile(updatedData, _image);
+
+        // Mettre à jour les données affichées
+        Navigator.pop(context, updatedChauffeur);
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Échec de la mise à jour")),
+          SnackBar(content: Text("Échec de la mise à jour : $e")),
         );
       }
     }
@@ -103,11 +105,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               TextFormField(
                 controller: _statusController,
-                decoration: InputDecoration(labelText: "Status"),
+                decoration: InputDecoration(labelText: "Statut"),
               ),
               SizedBox(height: 20),
 
-              // Bouton pour sauvegarder les modifications
+              // Bouton sauvegarde
               ElevatedButton(
                 onPressed: _saveProfile,
                 child: Text("Sauvegarder"),

@@ -18,7 +18,7 @@ class Chauffeur {
   factory Chauffeur.fromJson(Map<String, dynamic> json) {
     return Chauffeur(
       id: json['id'] ?? 0,
-      nom: json['nom'] ?? '',
+      nom: json['name'] ?? '',
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
       status: json['status'] ?? '',

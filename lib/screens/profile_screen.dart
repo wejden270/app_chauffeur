@@ -3,6 +3,8 @@ import 'package:chauffeurs_app/helpers/chauffeur_service.dart';
 import 'package:chauffeurs_app/helpers/auth_service.dart';
 import 'package:chauffeurs_app/screens/login_screen.dart';
 import 'package:chauffeurs_app/screens/edit_profile_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/chauffeur_model.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -24,20 +26,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     try {
       final driverId = 2; // Remplacer par SharedPreferences si besoin
-      final data = await ChauffeurService().fetchChauffeurInfo(driverId);
-      setState(() {
-        _chauffeurData = data;
-        _isLoading = false;
-        _errorMessage = data == null ? 'Aucune donnée trouvée pour ce profil.' : '';
-      });
+      final url = Uri.parse("http://localhost:8000/api/driver/$driverId/profile");
+      final response = await http.get(url);
+
+      // 🔹 Vérification de la réponse brute avant conversion
+      print("Réponse API brute : ${response.body}");
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonBody = json.decode(response.body);
+
+        // 🔹 Vérifie si la clé "data" existe et est bien formatée
+        if (jsonBody.containsKey("data")) {
+          setState(() {
+            _chauffeurData = Chauffeur.fromJson(jsonBody["data"]);
+            _isLoading = false;
+            _errorMessage = '';
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = "Données du chauffeur introuvables.";
+          });
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Erreur : Code ${response.statusCode}";
+        });
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Erreur lors du chargement du profil : $e';
+        _errorMessage = "Erreur lors du chargement du profil : $e";
       });
-      print('❌ Erreur lors du chargement du profil: $e');
+      print("❌ Erreur lors du chargement du profil: $e");
     }
   }
+
 
   Future<void> _logout() async {
     try {
@@ -87,18 +112,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             ElevatedButton.icon(
               onPressed: () async {
-                final updatedData = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditProfileScreen(
-                      chauffeurData: _chauffeurData!,
+                if (_chauffeurData != null) {
+                  final updatedData = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProfileScreen(
+                        chauffeurData: _chauffeurData!,
+                      ),
                     ),
-                  ),
-                );
-                if (updatedData != null) {
-                  setState(() {
-                    _chauffeurData = updatedData;
-                  });
+                  );
+                  if (updatedData != null && updatedData is Chauffeur) {
+                    setState(() {
+                      _chauffeurData = updatedData;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Profil mis à jour avec succès !")),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Impossible de modifier le profil. Données manquantes.")),
+                  );
                 }
               },
               icon: Icon(Icons.edit),
