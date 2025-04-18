@@ -2,38 +2,36 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // ✅ Enregistrer le token
-  Future<void> saveToken(String token) async {
+  Future<bool> saveToken(String token) async {
     try {
-      print('save token ======= $token');
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', token);
-      print("✅ Token enregistré avec succès !");
+      return true;
     } catch (e) {
-      print("❌ Erreur lors de l'enregistrement du token : $e");
+      print("❌ Erreur d'enregistrement du token : $e");
+      return false;
     }
   }
 
   // ✅ Enregistrer l'ID du chauffeur après connexion
-  Future<void> saveDriverId(int driverId) async {
+  Future<bool> saveDriverId(int driverId) async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('driverId', driverId);
-      print("✅ driverId enregistré : $driverId");
+      return true;
     } catch (e) {
-      print("❌ Erreur lors de l'enregistrement du driverId : $e");
+      print("❌ Erreur d'enregistrement du driverId : $e");
+      return false;
     }
   }
 
   // ✅ Récupérer l'ID du chauffeur
   Future<int?> getDriverId() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      int? driverId = prefs.getInt('driverId');
-      print("🔍 driverId récupéré : $driverId");
-      return driverId;
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt('driverId'); // Retourne null si l'ID n'existe pas
     } catch (e) {
-      print("❌ Erreur lors de la récupération du driverId : $e");
+      print("❌ Erreur de récupération du driverId : $e");
       return null;
     }
   }
@@ -41,12 +39,10 @@ class AuthService {
   // ✅ Récupérer le token
   Future<String?> getToken() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('token');
-      print("🔍 Token récupéré : $token");
-      return token;
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('token'); // Retourne null si le token n'existe pas
     } catch (e) {
-      print("❌ Erreur lors de la récupération du token : $e");
+      print("❌ Erreur de récupération du token : $e");
       return null;
     }
   }
@@ -54,25 +50,24 @@ class AuthService {
   // ✅ Vérifier si le token existe
   Future<bool> isTokenExist() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool exists = prefs.containsKey('token');
-      print("🔍 Token existe ? $exists");
-      return exists;
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.containsKey('token');
     } catch (e) {
-      print("❌ Erreur lors de la vérification du token : $e");
+      print("❌ Erreur de vérification du token : $e");
       return false;
     }
   }
 
   // ✅ Supprimer le token et l'ID du chauffeur (déconnexion)
-  Future<void> logout() async {
+  Future<bool> logout() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
       await prefs.remove('token');
-      await prefs.remove('driverId'); // 🔹 Supprimer aussi l'ID du chauffeur
-      print("✅ Déconnexion réussie, token et driverId supprimés !");
+      await prefs.remove('driverId');
+      return true;
     } catch (e) {
-      print("❌ Erreur lors de la suppression du token et du driverId : $e");
+      print("❌ Erreur lors de la déconnexion : $e");
+      return false;
     }
   }
 }

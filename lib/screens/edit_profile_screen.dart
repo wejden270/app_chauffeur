@@ -18,6 +18,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _statusController;
+  late TextEditingController _modelController;
+  late TextEditingController _licensePlateController;
   File? _image;
 
   @override
@@ -27,6 +29,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _emailController = TextEditingController(text: widget.chauffeurData.email);
     _phoneController = TextEditingController(text: widget.chauffeurData.phone);
     _statusController = TextEditingController(text: widget.chauffeurData.status ?? '');
+    _modelController = TextEditingController(text: widget.chauffeurData.model ?? '');
+    _licensePlateController = TextEditingController(text: widget.chauffeurData.license_plate ?? '');
   }
 
   // Sélectionner une image
@@ -47,6 +51,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "email": _emailController.text,
         "phone": _phoneController.text,
         "status": _statusController.text,
+        "model": _modelController.text,
+        "license_plate": _licensePlateController.text,
       };
 
       ChauffeurService chauffeurService = ChauffeurService();
@@ -106,6 +112,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: _statusController,
                 decoration: InputDecoration(labelText: "Statut"),
+              ),
+              TextFormField(
+                controller: _modelController,
+                decoration: InputDecoration(
+                  labelText: 'Modèle du véhicule',
+                  prefixIcon: Icon(Icons.directions_car),
+                ),
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _licensePlateController,
+                decoration: InputDecoration(
+                  labelText: 'Plaque d\'immatriculation',
+                  prefixIcon: Icon(Icons.confirmation_number),
+                ),
               ),
               SizedBox(height: 20),
 

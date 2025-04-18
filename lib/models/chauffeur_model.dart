@@ -5,6 +5,8 @@ class Chauffeur {
   final String email;
   final String status;
   final String? photo;
+  final String? model;
+  final String? license_plate;
 
   Chauffeur({
     required this.id,
@@ -13,6 +15,8 @@ class Chauffeur {
     required this.email,
     required this.status,
     this.photo,
+    this.model,
+    this.license_plate,
   });
 
   factory Chauffeur.fromJson(Map<String, dynamic> json) {
@@ -23,6 +27,21 @@ class Chauffeur {
       email: json['email'] ?? '',
       status: json['status'] ?? '',
       photo: json['photo'], // Ce champ peut rester null
+      model: json['model'],
+      license_plate: json['license_plate'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': nom,
+      'phone': phone,
+      'email': email,
+      'status': status,
+      'photo': photo,
+      'model': model,
+      'license_plate': license_plate,
+    };
   }
 }

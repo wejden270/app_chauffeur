@@ -25,17 +25,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     try {
-      final driverId = 2; // Remplacer par SharedPreferences si besoin
+      final driverId = await AuthService().getDriverId() ?? 1; // 🔹 ID dynamique
       final url = Uri.parse("http://localhost:8000/api/driver/$driverId/profile");
       final response = await http.get(url);
 
-      // 🔹 Vérification de la réponse brute avant conversion
-      print("Réponse API brute : ${response.body}");
+      print("🔹 Réponse API brute : ${response.body}");
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonBody = json.decode(response.body);
 
-        // 🔹 Vérifie si la clé "data" existe et est bien formatée
         if (jsonBody.containsKey("data")) {
           setState(() {
             _chauffeurData = Chauffeur.fromJson(jsonBody["data"]);
@@ -62,6 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       print("❌ Erreur lors du chargement du profil: $e");
     }
   }
+
 
 
   Future<void> _logout() async {
@@ -106,6 +105,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text("📧 ${_chauffeurData?.email ?? 'Email non disponible'}"),
             const SizedBox(height: 5),
             Text("📞 ${_chauffeurData?.phone ?? 'Numéro non disponible'}"),
+            const SizedBox(height: 5),
+            Text("🚗 Modèle: ${_chauffeurData?.model ?? 'Non spécifié'}"),
+            const SizedBox(height: 5),
+            Text("🔢 Plaque: ${_chauffeurData?.license_plate ?? 'Non spécifié'}"),
             const SizedBox(height: 5),
             Text("📌 Status: ${_chauffeurData?.status ?? 'Indisponible'}"),
             const SizedBox(height: 20),

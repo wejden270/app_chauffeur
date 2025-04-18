@@ -2,6 +2,8 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin") // Flutter Gradle plugin
+    // Add the Google services Gradle plugin
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -54,4 +56,13 @@ flutter {
 
 dependencies {
     implementation("androidx.multidex:multidex:2.0.1") // Ajout de MultiDex
+
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+
+    // Add the Firebase Analytics dependency
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Add other Firebase dependencies as needed
+    // For example: implementation("com.google.firebase:firebase-auth")
 }

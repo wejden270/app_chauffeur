@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chauffeurs_app/helpers/api_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -14,6 +16,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordConfirmationController = TextEditingController();
+  final TextEditingController _modelController = TextEditingController();
+  final TextEditingController _licensePlateController = TextEditingController();
 
   String _errorMessage = '';
   bool _isLoading = false;
@@ -26,55 +30,60 @@ class _SignupScreenState extends State<SignupScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _passwordConfirmationController.dispose();
+    _modelController.dispose();
+    _licensePlateController.dispose();
     super.dispose();
   }
 
-  void _register() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_passwordController.text != _passwordConfirmationController.text) {
-      setState(() {
-        _errorMessage = 'Les mots de passe ne correspondent pas.';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    try {
-      // Créez un Map contenant les données du formulaire
-      final Map<String, dynamic> driverData = {
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'password': _passwordController.text,
-        'password_confirmation': _passwordConfirmationController.text,
-      };
-
-      // Appelez ApiService.registerDriver avec le Map
-      final response = await ApiService.registerDriver(driverData);
-
-      if (response.containsKey('token')) {
-        Navigator.pop(context); // Retour à l'écran précédent après l'inscription réussie
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Inscription réussie ! Connectez-vous maintenant.')),
+  Future<void> _signUp() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/api/driver/signup'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'name': _nameController.text,
+            'email': _emailController.text,
+            'password': _passwordController.text,
+            'phone': _phoneController.text,
+            'model': _modelController.text,
+            'license_plate': _licensePlateController.text.toUpperCase(), // Conversion en majuscules
+          }),
         );
-      } else {
+
+        print('Données envoyées: ${jsonEncode({
+          'name': _nameController.text,
+          'email': _emailController.text,
+          'password': _passwordController.text,
+          'phone': _phoneController.text,
+          'model': _modelController.text,
+          'license_plate': _licensePlateController.text,
+        })}'); // Debug log
+
+        if (response.statusCode == 201 || response.statusCode == 200) {
+          Navigator.pop(context); // Retour à l'écran précédent après l'inscription réussie
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Inscription réussie ! Connectez-vous maintenant.')),
+          );
+        } else {
+          print('Erreur response: ${response.body}'); // Debug log
+          setState(() {
+            _errorMessage = 'Une erreur est survenue lors de l\'inscription';
+          });
+        }
+      } catch (e) {
+        print('Exception: $e'); // Debug log
         setState(() {
-          _errorMessage = response['error'] ?? 'Une erreur inconnue est survenue';
+          _errorMessage = 'Erreur : $e';
+        });
+      } finally {
+        setState(() {
+          _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erreur : $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -150,6 +159,36 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 validator: (value) => value!.length >= 6 ? null : '6 caractères min.',
               ),
+              SizedBox(height: 10),
+              TextFormField(
+                controller: _modelController,
+                decoration: InputDecoration(
+                  labelText: 'Modèle du véhicule',
+                  prefixIcon: Icon(Icons.directions_car),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer le modèle de votre véhicule';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 10),
+              TextFormField(
+                controller: _licensePlateController,
+                decoration: InputDecoration(
+                  labelText: 'Plaque d\'immatriculation',
+                  prefixIcon: Icon(Icons.confirmation_number),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer votre plaque d\'immatriculation';
+                  }
+                  return null;
+                },
+              ),
               SizedBox(height: 20),
 
               _isLoading
@@ -157,7 +196,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   : SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _register,
+                  onPressed: _signUp,
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
