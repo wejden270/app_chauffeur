@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:chauffeurs_app/helpers/api_service.dart';
+import 'package:chauffeurs_app/config/api_config.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -36,50 +36,46 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signUp() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/api/driver/signup'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: jsonEncode({
-            'name': _nameController.text,
-            'email': _emailController.text,
-            'password': _passwordController.text,
-            'phone': _phoneController.text,
-            'model': _modelController.text,
-            'license_plate': _licensePlateController.text.toUpperCase(), // Conversion en majuscules
-          }),
-        );
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
 
-        print('Données envoyées: ${jsonEncode({
-          'name': _nameController.text,
-          'email': _emailController.text,
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.register}'),
+        headers: ApiConfig.headers,
+        body: jsonEncode({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
           'password': _passwordController.text,
-          'phone': _phoneController.text,
-          'model': _modelController.text,
-          'license_plate': _licensePlateController.text,
-        })}'); // Debug log
+          'password_confirmation': _passwordConfirmationController.text,
+          'phone': _phoneController.text.trim(),
+          'car_model': _modelController.text.trim(),
+          'license_plate': _licensePlateController.text.trim(),
+        }),
+      );
 
-        if (response.statusCode == 201 || response.statusCode == 200) {
-          Navigator.pop(context); // Retour à l'écran précédent après l'inscription réussie
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Inscription réussie ! Connectez-vous maintenant.')),
-          );
-        } else {
-          print('Erreur response: ${response.body}'); // Debug log
-          setState(() {
-            _errorMessage = 'Une erreur est survenue lors de l\'inscription';
-          });
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
         }
-      } catch (e) {
-        print('Exception: $e'); // Debug log
+      } else {
+        final error = jsonDecode(response.body);
         setState(() {
-          _errorMessage = 'Erreur : $e';
+          _errorMessage = error['message'] ?? 'Erreur lors de l\'inscription. Veuillez vérifier vos informations.';
         });
-      } finally {
+      }
+    } catch (e) {
+      print('Error during signup: $e');
+      setState(() {
+        _errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.';
+      });
+    } finally {
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });

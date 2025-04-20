@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../helpers/api_service.dart';
 import '../helpers/location_helper.dart';
-import 'profile_screen.dart';  // Assure-toi d'importer le ProfileScreen
+import 'profile_screen.dart';
+import 'package:chauffeurs_app/services/firebase_messaging_service.dart';  // Update import
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -11,6 +13,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Position? _currentPosition;
+  final FirebaseMessagingService _messagingService = FirebaseMessagingService(
+    navigatorKey: GlobalKey<NavigatorState>(),
+  );
 
   @override
   void initState() {
@@ -143,6 +148,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _messagingService.handleForegroundMessage(
+            RemoteMessage(
+              notification: const RemoteNotification(
+                title: 'Test Notification',
+                body: 'Ceci est une notification de test',
+              ),
+            ),
+          );
+        },
+        child: const Icon(Icons.notifications),
+        tooltip: 'Tester notification',
       ),
     );
   }

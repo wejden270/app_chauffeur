@@ -8,26 +8,33 @@ plugins {
 
 android {
     namespace = "com.example.chauffeurs_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35  // Keep at 35 for plugin compatibility
+    ndkVersion = "25.1.8937393"  // Add this line after namespace declaration
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
         applicationId = "com.example.chauffeurs_app"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21
+        targetSdk = 35  // Match compileSdk
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
         // Activer MultiDex pour éviter les erreurs de dépassement de méthodes
         multiDexEnabled = true
+
+        ndk {
+            // Specify ABIs to build for
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -65,4 +72,10 @@ dependencies {
 
     // Add other Firebase dependencies as needed
     // For example: implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-messaging")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation("com.google.android.material:material:1.11.0")  // Ajouter cette ligne
+    implementation("androidx.core:core:1.10.0")
+    implementation("androidx.window:window:1.0.0")
+    implementation("androidx.window:window-java:1.0.0")
 }

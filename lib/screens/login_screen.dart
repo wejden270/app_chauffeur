@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:chauffeurs_app/screens/signup_screen.dart';
-import 'package:chauffeurs_app/helpers/api_service.dart';
+import 'package:chauffeurs_app/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:chauffeurs_app/config/api_config.dart';  // Add this import
+import 'package:chauffeurs_app/services/auth_service.dart';  // Add this import
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -14,41 +17,40 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   // Méthode de connexion
-  void _login() async {
+  Future<void> _login() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
-
-    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
-      setState(() {
-        _errorMessage = "Veuillez remplir tous les champs.";
-        _isLoading = false;
-      });
-      return;
-    }
 
     try {
       final response = await ApiService.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
-
-      if (response.containsKey('token')) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        setState(() {
-          _errorMessage = 'Identifiants incorrects. Veuillez réessayer.';
-        });
+      
+      print('Login response data: $response'); // Pour le débogage
+      
+      // Ne pas considérer "Connexion réussie" comme une erreur
+      if (response != null) {
+        await AuthService.saveUserData(response['driver'] ?? response);
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Erreur lors de la connexion : $e';
+        _errorMessage = e.toString()
+            .replaceAll('Exception: ', '')
+            .replaceAll('Erreur de connexion: ', '');
       });
+      print('Login error: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -64,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               // Logo de l'application
               Image.asset(
-                'assets/logo.png', // Assurez-vous d'avoir un logo ici
+                'assets/images/logo.png',  // Updated path to match assets directory
                 height: 100,
               ),
               SizedBox(height: 10),

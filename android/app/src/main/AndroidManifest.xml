@@ -15,6 +15,11 @@
     <!-- Permission pour accéder à Internet -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Permissions supplémentaires -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <!-- Déclaration des fonctionnalités GPS et réseau -->
     <uses-feature android:name="android.hardware.location.gps"/>
     <uses-feature android:name="android.hardware.location.network"/>
@@ -53,6 +58,18 @@
         <service
             android:name="com.lyokone.location.FlutterLocationService"
             android:foregroundServiceType="location"/>
+
+        <!-- Receivers pour les notifications planifiées -->
+        <receiver 
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" 
+            android:exported="false" />
+        <receiver 
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
 
         <!-- Ne pas supprimer cette ligne, utilisée par Flutter -->
         <meta-data

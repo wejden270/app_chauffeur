@@ -3,17 +3,39 @@ import 'package:geolocator/geolocator.dart';
 import 'package:chauffeurs_app/screens/hello_screen.dart';
 import 'package:chauffeurs_app/screens/home_screen.dart';
 import 'package:chauffeurs_app/screens/login_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:chauffeurs_app/services/notification_service.dart';
+import 'package:chauffeurs_app/services/firebase_messaging_service.dart';
+
+// Global navigator key
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _handleLocationPermission(); // Demande l'autorisation de localisation
+  await Firebase.initializeApp();
+
+  // Initialize Firebase Messaging
+  final messagingService = FirebaseMessagingService(navigatorKey: navigatorKey);
+  await messagingService.initialize();
+
   runApp(MyApp());
+}
+
+// Background message handler
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  notificationService.showNotification(message);
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,  // Add navigator key here
       title: 'Chauffeurs App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
