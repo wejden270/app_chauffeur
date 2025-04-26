@@ -16,7 +16,6 @@ class ApiService {
     }
   }
 
-
   // 🔹 INSCRIPTION CHAUFFEUR
   static Future<Map<String, dynamic>> registerDriver(Map<String, dynamic> driverData) async {
     try {
@@ -114,34 +113,6 @@ class ApiService {
     }
   }
 
-  // 🔹 RÉCUPÉRER LE PROFIL DU CHAUFFEUR
-  static Future<Map<String, dynamic>> getChauffeurProfile() async {
-    try {
-      final token = await getToken(); // Vérifie si le token existe
-      if (token == null) {
-        return {'error': 'Token introuvable, veuillez vous reconnecter'}; // Retourne une erreur si pas de token
-      }
-
-      final response = await http.get(
-        Uri.parse('$baseUrl/driver/profile'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      print("🔹 [PROFIL CHAUFFEUR] Code: ${response.statusCode}, Réponse: ${response.body}");
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        return {'error': _handleError(response)};
-      }
-    } catch (e) {
-      return {'error': 'Erreur de connexion : $e'};
-    }
-  }
-
   // 🔹 RÉCUPÉRER LES DONNÉES D'UN CHAUFFEUR SPÉCIFIQUE
   static Future<Map<String, dynamic>> getDriverData(String driverId) async {
     try {
@@ -166,21 +137,76 @@ class ApiService {
     }
   }
 
-  // 🔹 METTRE À JOUR LE STATUT DU CHAUFFEUR
-  static Future<Map<String, dynamic>> updateChauffeurStatus(String newStatus) async {
+  // 🔹 GESTION DES ERREURS HTTP
+  static String _handleError(http.Response response) {
     try {
-      final token = await getToken();
+      final Map<String, dynamic> errorData = json.decode(response.body);
+      return errorData['message'] ?? 'Erreur inconnue (${response.statusCode})';
+    } catch (e) {
+      return 'Erreur de traitement (${response.statusCode})';
+    }
+  }
+
+  // 🔹 METTRE À JOUR LE TOKEN FCM
+  static Future<bool> updateDriverFCMToken(String driverId, String fcmToken) async {
+    try {
+      print('🔍 Tentative de mise à jour du token FCM');
+      print('📱 Driver ID: $driverId');
+      print('🔑 FCM Token: $fcmToken');
+      print('🌐 URL: $baseUrl/driver/fcm/token/update');
+
+      final payload = {
+        'driver_id': driverId,
+        'fcm_token': fcmToken,
+      };
+      print('📦 Payload: ${json.encode(payload)}');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/driver/update-status'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse('$baseUrl/driver/fcm/token/update'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
+
+      print("📥 [UPDATE FCM] Status: ${response.statusCode}");
+      print("📄 Response body: ${response.body}");
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("❌ Erreur lors de la mise à jour du token FCM : $e");
+      return false;
+    }
+  }
+
+  // 🔹 RÉCUPÉRER LE PROFIL DU CHAUFFEUR PAR ID
+  static Future<Map<String, dynamic>> getDriverProfileById(String driverId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/driver/$driverId/profile'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print("🔹 [PROFIL CHAUFFEUR] Code: ${response.statusCode}, Réponse: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        return {'error': _handleError(response)};
+      }
+    } catch (e) {
+      return {'error': 'Erreur de connexion : $e'};
+    }
+  }
+
+  // 🔹 METTRE À JOUR LE STATUT DU CHAUFFEUR PAR ID
+  static Future<Map<String, dynamic>> updateDriverStatusById(String driverId, String newStatus) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/driver/$driverId/status/update'),
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({'status': newStatus}),
       );
 
       print("🔹 [MISE À JOUR STATUT] Code: ${response.statusCode}, Réponse: ${response.body}");
-
       return json.decode(response.body);
     } catch (e) {
       print("Erreur lors de la mise à jour du statut : $e");
@@ -188,25 +214,19 @@ class ApiService {
     }
   }
 
-  // 🔹 METTRE À JOUR LA LOCALISATION DU CHAUFFEUR
-  static Future<bool> updateChauffeurLocationSimple(double driverId, double latitude, double longitude) async {
+  // 🔹 METTRE À JOUR LA LOCALISATION DU CHAUFFEUR (Version sans token)
+  static Future<bool> updateChauffeurLocation(String driverId, double latitude, double longitude) async {
     try {
-      final token = await getToken();
       final response = await http.post(
-        Uri.parse('$baseUrl/chauffeurs/update-location'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse('$baseUrl/driver/$driverId/location/update'),
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'driver_id': driverId,
           'latitude': latitude,
           'longitude': longitude,
         }),
       );
 
       print("🔹 [MISE À JOUR LOCALISATION] Code: ${response.statusCode}, Réponse: ${response.body}");
-
       return response.statusCode == 200;
     } catch (e) {
       print("Erreur lors de la mise à jour de la localisation : $e");
@@ -214,16 +234,12 @@ class ApiService {
     }
   }
 
-  // 🔹 RÉCUPÉRER LES MISSIONS
-  static Future<List<dynamic>> getMissions() async {
+  // 🔹 RÉCUPÉRER LES MISSIONS DU CHAUFFEUR (Version sans token)
+  static Future<List<dynamic>> getDriverMissions(String driverId) async {
     try {
-      final token = await getToken();
       final response = await http.get(
-        Uri.parse('$baseUrl/missions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse('$baseUrl/driver/$driverId/missions'),
+        headers: {'Content-Type': 'application/json'},
       );
 
       print("🔹 [MISSIONS] Code: ${response.statusCode}, Réponse: ${response.body}");
@@ -235,16 +251,6 @@ class ApiService {
       }
     } catch (e) {
       return [];
-    }
-  }
-
-  // 🔹 GESTION DES ERREURS HTTP
-  static String _handleError(http.Response response) {
-    try {
-      final Map<String, dynamic> errorData = json.decode(response.body);
-      return errorData['message'] ?? 'Erreur inconnue (${response.statusCode})';
-    } catch (e) {
-      return 'Erreur de traitement (${response.statusCode})';
     }
   }
 }

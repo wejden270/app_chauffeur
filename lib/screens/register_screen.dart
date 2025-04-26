@@ -49,7 +49,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: ListView(
           padding: EdgeInsets.all(16.0),
           children: [
-            // ...existing code...
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Nom complet',
+                prefixIcon: Icon(Icons.person),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez entrer votre nom complet';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || !value.contains('@')) {
+                  return 'Veuillez entrer un email valide';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: _phoneController,
+              decoration: InputDecoration(
+                labelText: 'Téléphone',
+                prefixIcon: Icon(Icons.phone),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Veuillez entrer votre numéro de téléphone';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
             TextFormField(
               controller: _modelController,
               decoration: InputDecoration(
@@ -80,7 +126,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
               },
             ),
             SizedBox(height: 16),
-            // ...existing code...
+            TextFormField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                labelText: 'Mot de passe',
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+              validator: (value) {
+                if (value == null || value.length < 6) {
+                  return 'Le mot de passe doit contenir au moins 6 caractères';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                labelText: 'Confirmer le mot de passe',
+                prefixIcon: Icon(Icons.lock_outline),
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+              validator: (value) {
+                if (value != _passwordController.text) {
+                  return 'Les mots de passe ne correspondent pas';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _register,
+              child: Text('S\'inscrire'),
+            ),
           ],
         ),
       ),

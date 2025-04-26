@@ -3,6 +3,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../helpers/location_helper.dart';
 import 'package:url_launcher/url_launcher.dart'; // ✅ Correction de l'import
+import '../models/demande.dart';
+import '../services/demande_service.dart';
 
 class MissionScreen extends StatefulWidget {
   final LatLng clientLocation;
@@ -17,11 +19,15 @@ class _MissionScreenState extends State<MissionScreen> {
   late GoogleMapController mapController;
   LatLng? _currentPosition;
   bool _isLoading = true;
+  final DemandeService _demandeService = DemandeService();
+  List<Demande> _demandes = [];
+  bool _isLoadingDemandes = false;
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _loadDemandes();
   }
 
   // Récupère la position actuelle du chauffeur
@@ -33,6 +39,77 @@ class _MissionScreenState extends State<MissionScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadDemandes() async {
+    setState(() => _isLoadingDemandes = true);
+    try {
+      final demandes = await _demandeService.getDemandes();
+      setState(() {
+        _demandes = demandes;
+        _isLoadingDemandes = false;
+      });
+    } catch (e) {
+      print('Erreur lors du chargement des demandes: $e');
+      setState(() => _isLoadingDemandes = false);
+    }
+  }
+
+  void _handleDemande(Demande demande, bool accept) async {
+    try {
+      await _demandeService.updateDemandeStatus(
+        demande.id, 
+        accept ? 'accepted' : 'rejected'
+      );
+      _loadDemandes(); // Recharger les demandes
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(accept ? 'Demande acceptée' : 'Demande rejetée'),
+          backgroundColor: accept ? Colors.green : Colors.red,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors du traitement de la demande')),
+      );
+    }
+  }
+
+  Widget _buildDemandesList() {
+    if (_isLoadingDemandes) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    if (_demandes.isEmpty) {
+      return Center(child: Text('Aucune demande disponible'));
+    }
+
+    return ListView.builder(
+      itemCount: _demandes.length,
+      itemBuilder: (context, index) {
+        final demande = _demandes[index];
+        return Card(
+          margin: EdgeInsets.all(8.0),
+          child: ListTile(
+            title: Text('Destination: ${demande.dropLocation}'),
+            subtitle: Text('Prix: ${demande.price}€'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.check, color: Colors.green),
+                  onPressed: () => _handleDemande(demande, true),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: Colors.red),
+                  onPressed: () => _handleDemande(demande, false),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   // Centre la carte sur la position actuelle
@@ -65,7 +142,15 @@ class _MissionScreenState extends State<MissionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Mission en cours")),
+      appBar: AppBar(
+        title: const Text("Mission en cours"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _loadDemandes,
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -90,7 +175,26 @@ class _MissionScreenState extends State<MissionScreen> {
               ),
             },
           ),
-
+          DraggableScrollableSheet(
+            initialChildSize: 0.3,
+            minChildSize: 0.1,
+            maxChildSize: 0.7,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10.0,
+                    ),
+                  ],
+                ),
+                child: _buildDemandesList(),
+              );
+            },
+          ),
           // Boutons flottants pour navigation et recentrage
           Positioned(
             bottom: 20,

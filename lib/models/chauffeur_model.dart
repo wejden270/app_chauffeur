@@ -7,6 +7,7 @@ class Chauffeur {
   final String? photo;
   final String? model;
   final String? license_plate;
+  final String? fcmToken;
 
   Chauffeur({
     required this.id,
@@ -17,6 +18,7 @@ class Chauffeur {
     this.photo,
     this.model,
     this.license_plate,
+    this.fcmToken,
   });
 
   factory Chauffeur.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class Chauffeur {
       photo: json['photo'], // Ce champ peut rester null
       model: json['model'],
       license_plate: json['license_plate'],
+      fcmToken: json['fcm_token'],
     );
   }
 
@@ -42,6 +45,7 @@ class Chauffeur {
       'photo': photo,
       'model': model,
       'license_plate': license_plate,
+      'fcm_token': fcmToken,
     };
   }
 }

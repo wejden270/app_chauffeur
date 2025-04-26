@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../helpers/api_service.dart';
 import '../helpers/location_helper.dart';
 import 'profile_screen.dart';
-import 'package:chauffeurs_app/services/firebase_messaging_service.dart';  // Update import
+import 'package:chauffeurs_app/services/firebase_messaging_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/demande.dart';
+import '../services/demande_service.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -13,55 +17,137 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Position? _currentPosition;
+  StreamSubscription<Position>? _positionStreamSubscription;
   final FirebaseMessagingService _messagingService = FirebaseMessagingService(
     navigatorKey: GlobalKey<NavigatorState>(),
   );
+  final DemandeService _demandeService = DemandeService();
+  List<Demande> _demandes = [];
+  bool _isLoadingDemandes = false;
 
   @override
   void initState() {
     super.initState();
     _getLocationUpdates();
+    _loadDemandes();
   }
 
-  // Met à jour la position du chauffeur et l'envoie au serveur Laravel
+  @override
+  void dispose() {
+    _positionStreamSubscription?.cancel();
+    super.dispose();
+  }
+
   void _getLocationUpdates() {
-    LocationHelper.getLocationStream().listen((Position position) {
-      setState(() {
-        _currentPosition = position;
-      });
-
-      // Envoi de la position au serveur Laravel
-      int chauffeurId = 1; // Remplace par l'ID du chauffeur connecté
-      LocationHelper.sendLocationToServer(chauffeurId, position);
-    });
+    _positionStreamSubscription = LocationHelper.getLocationStream().listen(
+      (Position position) {
+        if (mounted) {
+          setState(() {
+            _currentPosition = position;
+          });
+          _sendLocationToServer();
+        }
+      },
+    );
   }
 
-  // Récupère les missions disponibles du serveur
-  Future<List<dynamic>> fetchMissions() async {
-    final response = await ApiService.getMissions();
-    return response;
+  Future<void> _sendLocationToServer() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? driverId = prefs.getString('driver_id');
+      
+      if (driverId != null && _currentPosition != null) {
+        await LocationHelper.sendLocationToServer(
+          driverId,
+          _currentPosition!,
+        );
+      }
+    } catch (e) {
+      print('❌ Error sending location: $e');
+    }
   }
 
-  // Accepte une mission
-  void _acceptMission(int missionId) {
-    print("Mission $missionId acceptée");
-    // Ajouter l'appel API ici pour marquer la mission comme acceptée
+  Future<void> _loadDemandes() async {
+    setState(() => _isLoadingDemandes = true);
+    try {
+      print('🔄 Chargement des demandes...');
+      final demandes = await _demandeService.getDemandes();
+      print('📦 Demandes reçues: ${demandes.length}');
+      
+      if (mounted) {
+        setState(() {
+          _demandes = demandes;
+          _isLoadingDemandes = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Erreur lors du chargement des demandes: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingDemandes = false;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur lors du chargement des demandes'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        });
+      }
+    }
+  }
+
+  Future<void> _handleDemande(Demande demande, bool accept) async {
+    try {
+      final success = await _demandeService.updateDemandeStatus(
+        demande.id,
+        accept ? 'accepted' : 'rejected'
+      );
+
+      if (success) {
+        await _loadDemandes(); // Recharger les demandes
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(accept ? 'Demande acceptée' : 'Demande rejetée'),
+              backgroundColor: accept ? Colors.green : Colors.red,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur lors de la mise à jour du statut'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur lors du traitement de la demande: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du traitement de la demande'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Missions disponibles"),
+        title: Text("Demandes de course"),
         backgroundColor: Colors.blue.shade700,
         centerTitle: true,
         elevation: 0,
         actions: <Widget>[
-          // Icône de profil en haut à droite
           IconButton(
-            icon: Icon(Icons.account_circle), // Icône de profil
+            icon: Icon(Icons.account_circle),
             onPressed: () {
-              // Naviguer vers l'écran de profil
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => ProfileScreen()),
@@ -72,7 +158,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // Affichage de la position actuelle
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -82,86 +167,70 @@ class _HomeScreenState extends State<HomeScreen> {
             margin: EdgeInsets.all(10),
             child: _currentPosition == null
                 ? Text(
-              "Récupération de la position...",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            )
+                    "Récupération de la position...",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  )
                 : Text(
-              "📍 Position : ${_currentPosition!.latitude}, ${_currentPosition!.longitude}",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+                    "📍 Position : ${_currentPosition!.latitude}, ${_currentPosition!.longitude}",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
           ),
           Expanded(
-            child: FutureBuilder(
-              future: fetchMissions(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text("❌ Une erreur est survenue"));
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text("🚗 Aucune mission disponible"));
-                }
-
-                List missions = snapshot.data!;
-                return ListView.builder(
-                  itemCount: missions.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      elevation: 4,
-                      margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.all(12),
-                        title: Text(
-                          "Mission #${missions[index]['id']}",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                        subtitle: Text(
-                          "🧑‍💼 Client : ${missions[index]['client_name']}",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            _acceptMission(missions[index]['id']);
+            child: _isLoadingDemandes
+                ? Center(child: CircularProgressIndicator())
+                : _demandes.isEmpty
+                    ? Center(child: Text('Aucune demande disponible'))
+                    : RefreshIndicator(
+                        onRefresh: _loadDemandes,
+                        child: ListView.builder(
+                          itemCount: _demandes.length,
+                          itemBuilder: (context, index) {
+                            final demande = _demandes[index];
+                            return Card(
+                              elevation: 4,
+                              margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.all(12),
+                                title: Text(
+                                  "Client: ${demande.client.name}",
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Téléphone: ${demande.client.phone}"),
+                                    Text("Status: ${demande.status}"),
+                                    Text("Date: ${demande.createdAt.toString().split('.')[0]}"),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.check_circle, color: Colors.green),
+                                      onPressed: () => _handleDemande(demande, true),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.cancel, color: Colors.red),
+                                      onPressed: () => _handleDemande(demande, false),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade600,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                          ),
-                          child: Text("Accepter"),
                         ),
                       ),
-                    );
-                  },
-                );
-              },
-            ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _messagingService.handleForegroundMessage(
-            RemoteMessage(
-              notification: const RemoteNotification(
-                title: 'Test Notification',
-                body: 'Ceci est une notification de test',
-              ),
-            ),
-          );
-        },
-        child: const Icon(Icons.notifications),
-        tooltip: 'Tester notification',
+        onPressed: _loadDemandes,
+        child: Icon(Icons.refresh),
+        tooltip: 'Actualiser les demandes',
       ),
     );
   }

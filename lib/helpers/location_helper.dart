@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
-import 'api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../helpers/api_service.dart';
 
 class LocationHelper {
   // Récupère un flux de la position actuelle de l'utilisateur
@@ -14,10 +15,36 @@ class LocationHelper {
   }
 
   // Envoie la position actuelle du chauffeur vers le serveur
-  static Future<void> sendLocationToServer(int chauffeurId, Position position) async {
-    // Convertir chauffeurId en String
-    //await ApiService.updateChauffeurLocationSimple(chauffeurId.toString(), position.latitude, position.longitude);
-    await ApiService.updateChauffeurLocationSimple(chauffeurId.toDouble(), position.latitude, position.longitude);
+  static Future<void> sendLocationToServer(String driverId, Position position) async {
+    try {
+      await ApiService.updateChauffeurLocation(
+        driverId,
+        position.latitude,
+        position.longitude
+      );
+    } catch (e) {
+      print('❌ Error sending location: $e');
+    }
+  }
+
+  static Future<void> updateLocation(Position position) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Récupérer l'ID comme String et le convertir en int
+      String? driverId = prefs.getString('driver_id');
+      
+      if (driverId != null) {
+        await ApiService.updateChauffeurLocation(
+          driverId, // Pas besoin de conversion puisque l'API attend un String
+          position.latitude,
+          position.longitude
+        );
+      } else {
+        print('❌ Driver ID not found in preferences');
+      }
+    } catch (e) {
+      print('❌ Error sending location: $e');
+    }
   }
 
   // Récupère la position actuelle de l'utilisateur

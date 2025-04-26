@@ -7,17 +7,35 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:chauffeurs_app/services/notification_service.dart';
 import 'package:chauffeurs_app/services/firebase_messaging_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 // Global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  
+  if (kDebugMode) {
+    print('🚀 Initialisation de Firebase...');
+  }
 
-  // Initialize Firebase Messaging
-  final messagingService = FirebaseMessagingService(navigatorKey: navigatorKey);
+  FirebaseMessagingService messagingService = FirebaseMessagingService(navigatorKey: navigatorKey);
   await messagingService.initialize();
+  
+  // Vérifier si l'utilisateur est connecté
+  final prefs = await SharedPreferences.getInstance();
+  String? userId = prefs.getString('user_id');
+  if (userId != null) {
+    if (kDebugMode) {
+      print('👤 Utilisateur connecté (ID: $userId)');
+    }
+    await messagingService.initializeFirebaseMessaging(userId);
+  }
+
+  // Gérer les permissions de localisation avant de lancer l'application
+  await _handleLocationPermission();
 
   runApp(MyApp());
 }
