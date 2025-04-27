@@ -1,34 +1,32 @@
 class Demande {
   final int id;
-  final int clientId;
-  final int chauffeurId;
-  final String status;
-  final DateTime createdAt;
-  final DateTime updatedAt;
   final Client client;
   final Chauffeur chauffeur;
+  final String status;
+  final DateTime createdAt;
+  final double? client_latitude;    // Ajouté au niveau de la demande
+  final double? client_longitude;   // Ajouté au niveau de la demande
 
   Demande({
     required this.id,
-    required this.clientId,
-    required this.chauffeurId,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
     required this.client,
     required this.chauffeur,
+    required this.status,
+    required this.createdAt,
+    this.client_latitude,
+    this.client_longitude,
   });
 
   factory Demande.fromJson(Map<String, dynamic> json) {
+    print('📦 Données demande: $json');
     return Demande(
       id: json['id'],
-      clientId: json['client_id'],
-      chauffeurId: json['chauffeur_id'],
-      status: json['status'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-      client: Client.fromJson(json['client']),
-      chauffeur: Chauffeur.fromJson(json['chauffeur']),
+      client: Client.fromJson(json['client'] ?? {}),
+      chauffeur: Chauffeur.fromJson(json['chauffeur'] ?? {}),
+      status: json['status'] ?? '',
+      createdAt: DateTime.parse(json['created_at'] ?? ''),
+      client_latitude: double.tryParse(json['client_latitude']?.toString() ?? '0'),
+      client_longitude: double.tryParse(json['client_longitude']?.toString() ?? '0'),
     );
   }
 }
@@ -38,20 +36,27 @@ class Client {
   final String name;
   final String phone;
   final String email;
+  final double? latitude;
+  final double? longitude;
 
   Client({
     required this.id,
     required this.name,
     required this.phone,
     required this.email,
+    this.latitude,
+    this.longitude,
   });
 
   factory Client.fromJson(Map<String, dynamic> json) {
+    print('👤 Données client: $json');
     return Client(
       id: json['id'],
       name: json['name'],
       phone: json['phone'],
       email: json['email'],
+      latitude: double.tryParse(json['client_latitude']?.toString() ?? '0.0'),
+      longitude: double.tryParse(json['client_longitude']?.toString() ?? '0.0'),
     );
   }
 }

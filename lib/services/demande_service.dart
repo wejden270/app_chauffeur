@@ -8,25 +8,26 @@ class DemandeService {
     try {
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/demandes'),
-        headers: ApiConfig.headers,
+        headers: {'Content-Type': 'application/json'},
       );
 
+      print('📡 Réponse brute: ${response.body}');
+
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final responseData = json.decode(response.body);
+        final List<dynamic> demandesJson = responseData['data'];
         
-        if (jsonResponse['status'] == 'success' && jsonResponse['data'] is List) {
-          final List<dynamic> data = jsonResponse['data'];
-          return data.map((json) => Demande.fromJson(json)).toList();
-        }
+        print('📦 Données parsées: $demandesJson');
         
-        print('Structure de réponse inattendue: $jsonResponse');
-        return [];
+        return demandesJson.map((json) {
+          print('🔄 Traitement demande: $json');
+          return Demande.fromJson(json);
+        }).toList();
       } else {
-        print('Erreur API: ${response.statusCode} - ${response.body}');
-        return [];
+        throw Exception('Erreur de chargement des demandes');
       }
     } catch (e) {
-      print('Exception dans getDemandes: $e');
+      print('❌ Erreur getDemandes: $e');
       return [];
     }
   }

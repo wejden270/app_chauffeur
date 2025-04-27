@@ -245,7 +245,17 @@ class ApiService {
       print("🔹 [MISSIONS] Code: ${response.statusCode}, Réponse: ${response.body}");
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final missions = json.decode(response.body);
+        // Vérifie que les coordonnées du client sont présentes dans chaque mission
+        return missions.map((mission) {
+          if (!mission.containsKey('client_latitude')) {
+            mission['client_latitude'] = 0.0;
+          }
+          if (!mission.containsKey('client_longitude')) {
+            mission['client_longitude'] = 0.0;
+          }
+          return mission;
+        }).toList();
       } else {
         return [];
       }

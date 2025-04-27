@@ -9,6 +9,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/demande.dart';
 import '../services/demande_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -112,6 +113,11 @@ class _HomeScreenState extends State<HomeScreen> {
               backgroundColor: accept ? Colors.green : Colors.red,
             ),
           );
+          
+          // Ouvrir Google Maps si la demande est acceptée
+          if (accept && demande.client_latitude != null && demande.client_longitude != null) {
+            openMap(demande.client_latitude!, demande.client_longitude!);
+          }
         }
       } else {
         if (mounted) {
@@ -133,6 +139,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> openMap(double latitude, double longitude) async {
+    final String googleMapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude&travelmode=driving';
+
+    if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
+      await launchUrl(Uri.parse(googleMapsUrl), mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Impossible d\'ouvrir Google Maps.';
     }
   }
 
@@ -204,6 +220,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Text("Téléphone: ${demande.client.phone}"),
                                     Text("Status: ${demande.status}"),
                                     Text("Date: ${demande.createdAt.toString().split('.')[0]}"),
+                                    Text('Position client: '
+                                        '${demande.client_latitude?.toStringAsFixed(6) ?? "N/A"}, '
+                                        '${demande.client_longitude?.toStringAsFixed(6) ?? "N/A"}'),
                                   ],
                                 ),
                                 trailing: Row(
@@ -216,6 +235,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                     IconButton(
                                       icon: Icon(Icons.cancel, color: Colors.red),
                                       onPressed: () => _handleDemande(demande, false),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.map, color: Colors.blue),
+                                      onPressed: () {
+                                        if (demande.client_latitude != null && demande.client_longitude != null) {
+                                          openMap(demande.client_latitude!, demande.client_longitude!);
+                                        }
+                                      },
                                     ),
                                   ],
                                 ),
