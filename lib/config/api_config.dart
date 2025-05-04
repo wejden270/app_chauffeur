@@ -1,8 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
-  // Pour un appareil physique, utilisez l'IP de votre ordinateur
-  static const String baseUrl = 'http://192.168.1.110:8000/api'; // Remplacez XX par votre IP locale
+  // Remplacer par l'IP de votre machine ou utiliser 10.0.2.2 pour l'émulateur Android
+  static const String baseUrl = 'http://192.168.1.110:8000/api';
   
   // Endpoints
   static const String login = '/auth/login';

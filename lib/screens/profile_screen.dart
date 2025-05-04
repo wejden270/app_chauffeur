@@ -5,6 +5,8 @@ import 'package:chauffeurs_app/screens/login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/chauffeur_model.dart';
+import '../services/demande_service.dart';  // Ajouter cet import
+import '../config/api_config.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -16,6 +18,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  final DemandeService _demandeService = DemandeService();
+
   @override
   void initState() {
     super.initState();
@@ -25,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     try {
       final driverId = await AuthService().getDriverId() ?? 1;
-      final url = Uri.parse("http://192.168.1.110:8000/api/driver/$driverId/profile");
+      final url = Uri.parse("${ApiConfig.baseUrl}/driver/$driverId/profile");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -69,6 +73,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _toggleStatus() async {
+    if (_chauffeurData == null) return;
+
+    try {
+      setState(() => _isLoading = true);
+      
+      final driverId = await AuthService().getDriverId() ?? 1;
+      final newStatus = _chauffeurData?.status == 'disponible' ? 'en_mission' : 'disponible';
+      
+      print('🔄 Tentative de changement de statut pour le chauffeur $driverId');
+      print('📝 Nouveau statut demandé: $newStatus');
+      
+      final success = await _demandeService.updateDriverStatus(driverId, newStatus);
+      
+      if (success) {
+        print('✅ Statut mis à jour avec succès');
+        await _loadProfile();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Statut mis à jour avec succès'), backgroundColor: Colors.green)
+        );
+      } else {
+        print('❌ Échec de la mise à jour du statut');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la mise à jour du statut'), backgroundColor: Colors.red)
+        );
+      }
+    } catch (e) {
+      print('❌ Exception lors du changement de statut: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red)
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Widget _buildInfoRow(IconData icon, String label, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -83,6 +123,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusToggle() {
+    final isAvailable = _chauffeurData?.status == 'disponible';
+    
+    return ElevatedButton.icon(
+      onPressed: _toggleStatus,
+      icon: Icon(isAvailable ? Icons.directions_car : Icons.pause),
+      label: Text(isAvailable ? 'Passer En Mission' : 'Passer Disponible'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isAvailable ? Colors.green : Colors.orange,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        textStyle: const TextStyle(fontSize: 16),
       ),
     );
   }
@@ -112,6 +167,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _chauffeurData?.nom ?? "Nom inconnu",
                         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                       ),
+                      const Divider(height: 30, thickness: 1.5),
+                      _buildStatusToggle(), // Ajouter le bouton de changement de statut
                       const Divider(height: 30, thickness: 1.5),
 
                       _buildInfoRow(Icons.email, "Email", _chauffeurData?.email),

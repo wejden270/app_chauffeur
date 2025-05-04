@@ -43,7 +43,7 @@ class DemandeService {
           'Content-Type': 'application/json',
         },
         body: json.encode({
-          'status': status == 'accepted' ? 'acceptee' : 'rejetee'
+          'status': status == 'accepted' ? 'acceptee' : 'refusee'
         }),
       );
 
@@ -60,4 +60,47 @@ class DemandeService {
       return false;
     }
   }
+
+ Future<bool> updateDriverStatus(int driverId, String status) async {
+  try {
+    // Conversion du format du statut pour correspondre à l'API
+    String apiStatus = status;
+    if (status == "en_mission") {
+      apiStatus = "en mission";
+    }
+    
+    print('📤 Tentative de mise à jour du statut - ID: $driverId, Nouveau statut: $apiStatus');
+    
+    final url = Uri.parse('${ApiConfig.baseUrl}/driver/$driverId/update-status');
+    print('📡 URL: $url');
+
+    final Map<String, dynamic> requestBody = {
+      'status': apiStatus,
+    };
+    
+    print('📦 Corps de la requête: ${json.encode(requestBody)}');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: json.encode(requestBody),
+    );
+
+    print('📥 Code de réponse: ${response.statusCode}');
+    print('📥 Corps de la réponse: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      return true;
+    }
+    
+    return false;
+  } catch (e) {
+    print('❌ Exception dans updateDriverStatus: $e');
+    return false;
+  }
+}
 }
