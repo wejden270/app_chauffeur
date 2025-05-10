@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:chauffeurs_app/screens/signup_screen.dart';
 import 'package:chauffeurs_app/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:chauffeurs_app/config/api_config.dart';  // Add this import
-import 'package:chauffeurs_app/services/auth_service.dart';  // Add this import
+import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:chauffeurs_app/services/firebase_messaging_service.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -15,6 +16,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   String _errorMessage = '';
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Précharger le token FCM pour qu'il soit prêt lors de la connexion
+    _preloadFCMToken();
+  }
+
+  // Préchargement du token FCM
+  Future<void> _preloadFCMToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (kDebugMode) {
+        print('🔍 Token FCM préchargé: $token');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Erreur lors du préchargement du token FCM: $e');
+      }
+    }
+  }
 
   // Méthode de connexion
   Future<void> _login() async {
@@ -29,11 +51,37 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
       
-      print('Login response data: $response'); // Pour le débogage
+      if (kDebugMode) {
+        print('Login response data: $response'); // Pour le débogage
+      }
       
       // Ne pas considérer "Connexion réussie" comme une erreur
       if (response != null) {
-        await AuthService.saveUserData(response['driver'] ?? response);
+        // Récupérer driverId du response
+        int? driverId;
+        
+        if (response.containsKey('user') && response['user'] != null) {
+          driverId = response['user']['id'];
+        } else if (response.containsKey('driver') && response['driver'] != null) {
+          driverId = response['driver']['id'];
+        } else if (response.containsKey('id')) {
+          driverId = response['id'];
+        }
+        
+        if (driverId != null) {
+          // Sauvegarder driverId
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('driverId', driverId);
+          await prefs.setString('user_id', driverId.toString());
+          
+          if (kDebugMode) {
+            print('✅ driverId sauvegardé: $driverId');
+          }
+          
+          // Initialiser FCM avec le driverId
+          _initializeFirebaseMessaging(driverId.toString());
+        }
+        
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/home');
         }
@@ -44,12 +92,32 @@ class _LoginScreenState extends State<LoginScreen> {
             .replaceAll('Exception: ', '')
             .replaceAll('Erreur de connexion: ', '');
       });
-      print('Login error: $e');
+      if (kDebugMode) {
+        print('❌ Login error: $e');
+      }
     } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+  
+  // Initialiser Firebase Messaging après connexion réussie
+  Future<void> _initializeFirebaseMessaging(String driverId) async {
+    try {
+      final messagingService = FirebaseMessagingService(
+        navigatorKey: GlobalKey<NavigatorState>(),
+      );
+      await messagingService.initializeFirebaseMessaging(driverId);
+      
+      if (kDebugMode) {
+        print('✅ Firebase Messaging initialisé pour driverId: $driverId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Erreur lors de l\'initialisation FCM: $e');
       }
     }
   }

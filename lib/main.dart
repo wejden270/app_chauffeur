@@ -21,23 +21,58 @@ Future<void> main() async {
     print('🚀 Initialisation de Firebase...');
   }
 
+  // Assurer la cohérence des IDs utilisateur
+  await _ensureUserIdConsistency();
+
   FirebaseMessagingService messagingService = FirebaseMessagingService(navigatorKey: navigatorKey);
   await messagingService.initialize();
   
-  // Vérifier si l'utilisateur est connecté
+  // Vérifier si l'utilisateur est connecté - utiliser driverId pour cohérence
   final prefs = await SharedPreferences.getInstance();
-  String? userId = prefs.getString('user_id');
-  if (userId != null) {
+  int? driverId = prefs.getInt('driverId');
+  
+  if (driverId != null) {
     if (kDebugMode) {
-      print('👤 Utilisateur connecté (ID: $userId)');
+      print('👤 Chauffeur connecté (ID: $driverId)');
     }
-    await messagingService.initializeFirebaseMessaging(userId);
+    await messagingService.initializeFirebaseMessaging(driverId.toString());
+  } else {
+    if (kDebugMode) {
+      print('👤 Aucun chauffeur connecté');
+    }
   }
 
   // Gérer les permissions de localisation avant de lancer l'application
   await _handleLocationPermission();
 
   runApp(MyApp());
+}
+
+// Fonction pour assurer la cohérence entre user_id et driverId
+Future<void> _ensureUserIdConsistency() async {
+  final prefs = await SharedPreferences.getInstance();
+  int? driverId = prefs.getInt('driverId');
+  String? userId = prefs.getString('user_id');
+  
+  // Si un ID existe et l'autre non, assurez la cohérence
+  if (driverId != null && userId == null) {
+    await prefs.setString('user_id', driverId.toString());
+    if (kDebugMode) {
+      print('🔄 user_id ajouté pour cohérence: $driverId');
+    }
+  } else if (userId != null && driverId == null) {
+    try {
+      int id = int.parse(userId);
+      await prefs.setInt('driverId', id);
+      if (kDebugMode) {
+        print('🔄 driverId ajouté pour cohérence: $id');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Erreur lors de la conversion de user_id: $e');
+      }
+    }
+  }
 }
 
 // Background message handler

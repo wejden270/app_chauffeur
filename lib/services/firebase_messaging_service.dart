@@ -11,15 +11,13 @@ import 'dart:io';
 class FirebaseMessagingService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final GlobalKey<NavigatorState> navigatorKey;
-  
+
   // Mise à jour de l'URL de base selon l'environnement
   String get _baseUrl {
     if (kIsWeb) {
       return 'http://localhost:8000';
-    } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000'; // URL pour l'émulateur Android
     } else {
-      return 'http://192.168.1.110:8000'; // URL pour les appareils réels
+      return 'http://192.168.1.110:8000'; // Toujours utiliser l'IP locale pour les appareils physiques
     }
   }
 
@@ -62,7 +60,7 @@ class FirebaseMessagingService {
         FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
         FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
         FirebaseMessaging.onMessage.listen(handleForegroundMessage);
-        
+
         RemoteMessage? initialMessage = await _messaging.getInitialMessage();
         if (initialMessage != null) {
           _handleMessage(initialMessage);
@@ -84,6 +82,7 @@ class FirebaseMessagingService {
         if (kDebugMode) print('📱 Token FCM obtenu: $token');
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', token);
+        if (kDebugMode) print('💾 Token FCM stocké dans SharedPreferences: $token');
       }
       return token;
     } catch (e) {
@@ -92,34 +91,34 @@ class FirebaseMessagingService {
     }
   }
 
-  Future<bool> updateFCMToken(String token, String userId) async {
+  // Méthode mise à jour pour utiliser une URL cohérente
+  Future<bool> updateFCMToken(String token, String driverId) async {
+    String requestUrl = '$_baseUrl/api/driver/$driverId/fcm-token';
+    
     try {
-      if (userId.isEmpty || token.isEmpty) {
+      if (driverId.isEmpty || token.isEmpty) {
         if (kDebugMode) {
-          print('❌ UserId ou token manquant');
-          print('UserId: $userId');
+          print('❌ driverId ou token manquant');
+          print('driverId: $driverId');
           print('Token: $token');
         }
         return false;
       }
 
-      final url = '$_baseUrl/api/driver/fcm/token/update';
-      
       if (kDebugMode) {
         print('📤 Envoi du token FCM au serveur');
-        print('URL: $url');
-        print('Payload: {fcm_token: $token, driver_id: $userId}');
+        print('URL: $requestUrl');
+        print('Payload: {fcm_token: $token, device_type: ${Platform.isAndroid ? 'android' : 'ios'}}');
       }
 
       final response = await http.post(
-        Uri.parse(url),
+        Uri.parse(requestUrl),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
         body: jsonEncode({
           'fcm_token': token,
-          'driver_id': userId,
           'device_type': Platform.isAndroid ? 'android' : 'ios',
         }),
       );
@@ -133,25 +132,26 @@ class FirebaseMessagingService {
     } catch (e) {
       if (kDebugMode) {
         print('❌ Exception lors de la mise à jour du token FCM:');
-        print('URL utilisée: $_baseUrl');
+        print('URL utilisée: $requestUrl');
         print('Exception: ${e.toString()}');
       }
       return false;
     }
   }
 
-  Future<void> initializeFirebaseMessaging(String userId) async {
+  Future<void> initializeFirebaseMessaging(String driverId) async {
     try {
       if (kDebugMode) {
-        print('🚀 Initialisation FCM pour userId: $userId');
+        print('🚀 Initialisation FCM pour driverId: $driverId');
       }
 
       NotificationSettings settings = await _messaging.requestPermission();
-      
+
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         String? token = await getFCMToken();
         if (token != null) {
-          bool success = await updateFCMToken(token, userId);
+          if (kDebugMode) print('🔄 Token FCM actuel: $token');
+          bool success = await updateFCMToken(token, driverId);
           if (kDebugMode) {
             print('✅ Mise à jour du token FCM: ${success ? 'réussie' : 'échouée'}');
           }
@@ -159,11 +159,16 @@ class FirebaseMessagingService {
 
         // Écouter les changements de token
         FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-          bool success = await updateFCMToken(newToken, userId);
+          if (kDebugMode) print('🔄 Token FCM rafraîchi: $newToken');
+          bool success = await updateFCMToken(newToken, driverId);
           if (kDebugMode) {
-            print('🔄 Token FCM rafraîchi: ${success ? 'réussi' : 'échoué'}');
+            print('🔄 Token FCM mis à jour: ${success ? 'réussi' : 'échoué'}');
           }
         });
+      } else {
+        if (kDebugMode) {
+          print('❌ Notifications non autorisées');
+        }
       }
     } catch (e) {
       if (kDebugMode) {
