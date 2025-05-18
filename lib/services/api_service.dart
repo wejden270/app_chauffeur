@@ -1,38 +1,67 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:chauffeurs_app/config/api_config.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class ApiService {
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  // URL de base pour l'API
+  static const String baseUrl = 'http://192.168.1.110:8000/api/driver';
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
     try {
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+      
+      if (fcmToken == null) {
+        if (kDebugMode) {
+          print('⚠️ FCM Token manquant');
+        }
+        throw Exception('Token FCM non disponible');
+      }
+
+      if (kDebugMode) {
+        print('🔑 Tentative de connexion...');
+        print('📧 Email: $email');
+        print('🎟️ FCM Token: $fcmToken');
+      }
+
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}'),
-        headers: ApiConfig.headers,
-        body: jsonEncode({
+        Uri.parse('$baseUrl/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({
           'email': email,
           'password': password,
+          'fcm_token': fcmToken,
+          'device_type': 'android',
         }),
       );
 
-      print('Login response status: ${response.statusCode}');
-      print('Login response body: ${response.body}');
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (data['success'] == false) {
-          throw Exception(data['message']);
-        }
-        return data;
-      } else {
-        throw Exception(data['message'] ?? 'Erreur de connexion');
+      if (kDebugMode) {
+        print('📥 Réponse brute: ${response.body}');
+        print('📊 Status code: ${response.statusCode}');
       }
+
+      if (response.statusCode != 200) {
+        Map<String, dynamic> errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 
+                       errorData['error'] ?? 
+                       'Échec de la connexion (${response.statusCode})');
+      }
+
+      final Map<String, dynamic> data = json.decode(response.body);
+      
+      if (data['user'] == null) {
+        throw Exception('Données utilisateur manquantes dans la réponse');
+      }
+
+      return data;
     } catch (e) {
-      print('Error during login: $e');
-      if (e.toString().contains('Connexion réussie')) {
-        return {'driver': {'id': '1'}}; // Retourner les données minimales
+      if (kDebugMode) {
+        print('❌ Erreur complète: $e');
       }
-      throw Exception('Erreur de connexion: $e');
+      rethrow;  // Permet de propager l'erreur exacte
     }
   }
 }

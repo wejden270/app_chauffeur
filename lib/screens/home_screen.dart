@@ -152,6 +152,43 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openChat(int clientId) {
+    Navigator.pushNamed(
+      context,
+      '/chat',
+      arguments: clientId,
+    );
+  }
+
+  Widget _buildCourseCard(Map<String, dynamic> course) {
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Client: ${course['client_name'] ?? 'Non spécifié'}',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: Icon(Icons.chat_bubble_outline),
+                  onPressed: () => _openChat(course['client_id']),
+                  tooltip: 'Discuter avec le client',
+                ),
+              ],
+            ),
+            // ...existing course card content...
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -243,6 +280,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                           openMap(demande.client_latitude!, demande.client_longitude!);
                                         }
                                       },
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.chat_bubble_outline),
+                                      onPressed: () => _openChat(demande.client.id),
+                                      tooltip: 'Discuter avec le client',
                                     ),
                                   ],
                                 ),

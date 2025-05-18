@@ -20,7 +20,7 @@ dependencies:
   another_flushbar: ^1.12.30
   
   # 🌐 API et stockage
-  http: ^1.2.1
+  http: ^1.1.0
   shared_preferences: ^2.2.2  # Unique entry for shared_preferences
   
   # 🗺️ Maps et localisation

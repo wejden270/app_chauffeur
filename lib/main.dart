@@ -3,49 +3,34 @@ import 'package:geolocator/geolocator.dart';
 import 'package:chauffeurs_app/screens/hello_screen.dart';
 import 'package:chauffeurs_app/screens/home_screen.dart';
 import 'package:chauffeurs_app/screens/login_screen.dart';
+import 'package:chauffeurs_app/screens/chat_screen.dart';  // Ajouter cet import
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:chauffeurs_app/services/notification_service.dart';
 import 'package:chauffeurs_app/services/firebase_messaging_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:chauffeurs_app/helpers/api_service.dart';
 
 // Global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  
-  if (kDebugMode) {
-    print('🚀 Initialisation de Firebase...');
-  }
-
-  // Assurer la cohérence des IDs utilisateur
-  await _ensureUserIdConsistency();
-
-  FirebaseMessagingService messagingService = FirebaseMessagingService(navigatorKey: navigatorKey);
-  await messagingService.initialize();
-  
-  // Vérifier si l'utilisateur est connecté - utiliser driverId pour cohérence
-  final prefs = await SharedPreferences.getInstance();
-  int? driverId = prefs.getInt('driverId');
-  
-  if (driverId != null) {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp();
+    
     if (kDebugMode) {
-      print('👤 Chauffeur connecté (ID: $driverId)');
+      print('🚀 Démarrage de l\'application...');
     }
-    await messagingService.initializeFirebaseMessaging(driverId.toString());
-  } else {
+    
+    runApp(MyApp(navigatorKey: navigatorKey));
+  } catch (e) {
     if (kDebugMode) {
-      print('👤 Aucun chauffeur connecté');
+      print('❌ Erreur au démarrage: $e');
     }
+    runApp(ErrorApp(error: e.toString()));
   }
-
-  // Gérer les permissions de localisation avant de lancer l'application
-  await _handleLocationPermission();
-
-  runApp(MyApp());
 }
 
 // Fonction pour assurer la cohérence entre user_id et driverId
@@ -84,11 +69,32 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   notificationService.showNotification(message);
 }
 
-class MyApp extends StatelessWidget {
+class ErrorApp extends StatelessWidget {
+  final String error;
+  const ErrorApp({Key? key, required this.error}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey,  // Add navigator key here
+      home: Scaffold(
+        body: Center(
+          child: Text('Erreur de démarrage: $error'),
+        ),
+      ),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  const MyApp({Key? key, required this.navigatorKey}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,  // Ceci masquera le banner DEBUG
+      navigatorKey: navigatorKey,
       title: 'Chauffeurs App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
@@ -98,40 +104,8 @@ class MyApp extends StatelessWidget {
         '/': (context) => HelloScreen(), // Écran d'accueil
         '/login': (context) => LoginScreen(), // Écran de connexion
         '/home': (context) => HomeScreen(), // Écran après connexion
+        '/chat': (context) => ChatScreen(), // Nouvelle route pour la messagerie
       },
     );
   }
-}
-
-/// Fonction pour gérer les autorisations de localisation
-Future<void> _handleLocationPermission() async {
-  bool serviceEnabled;
-  LocationPermission permission;
-
-  // Vérifie si le GPS est activé
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    debugPrint("Le service de localisation est désactivé. Activez-le !");
-    return;
-  }
-
-  // Vérifie l'état actuel de l'autorisation
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      debugPrint("Permission de localisation refusée !");
-      return;
-    }
-  }
-
-  if (permission == LocationPermission.deniedForever) {
-    debugPrint("Permission de localisation refusée en permanence !");
-    return;
-  }
-
-  // Récupère la position actuelle après l'autorisation
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high);
-  debugPrint("Position actuelle : ${position.latitude}, ${position.longitude}");
 }
